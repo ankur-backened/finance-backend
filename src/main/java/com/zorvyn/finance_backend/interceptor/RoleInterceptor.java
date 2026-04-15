@@ -14,11 +14,15 @@ public class RoleInterceptor implements HandlerInterceptor {
                              HttpServletResponse response,
                              Object handler) {
 
+        // allow browser preflight requests to pass through
+        if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
+            return true;
+        }
+
         String role = request.getHeader("X-User-Role");
         String method = request.getMethod();
         String path = request.getRequestURI();
 
-        // every request must have this header
         if (role == null || role.isBlank()) {
             throw new AccessDeniedException("X-User-Role header is missing");
         }
@@ -27,7 +31,6 @@ public class RoleInterceptor implements HandlerInterceptor {
 
         switch (role) {
             case "VIEWER":
-                // viewer can only read data
                 if (!method.equalsIgnoreCase("GET")) {
                     throw new AccessDeniedException(
                             "VIEWER role is not allowed to create, update or delete records"
@@ -36,9 +39,6 @@ public class RoleInterceptor implements HandlerInterceptor {
                 break;
 
             case "ANALYST":
-                // analyst can read everything
-                // analyst can create financial records only
-                // analyst cannot touch users or delete anything
                 boolean isGet = method.equalsIgnoreCase("GET");
                 boolean isCreateRecord = method.equalsIgnoreCase("POST")
                         && path.startsWith("/api/records");
@@ -51,7 +51,6 @@ public class RoleInterceptor implements HandlerInterceptor {
                 break;
 
             case "ADMIN":
-                // full access, no restrictions
                 break;
 
             default:

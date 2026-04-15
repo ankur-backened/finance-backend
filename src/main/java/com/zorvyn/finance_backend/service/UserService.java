@@ -6,6 +6,7 @@ import com.zorvyn.finance_backend.entity.User;
 import com.zorvyn.finance_backend.exception.ResourceNotFoundException;
 import com.zorvyn.finance_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.zorvyn.finance_backend.enums.UserStatus;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public UserResponseDto createUser(UserRequestDto dto) {
         if (userRepository.existsByEmail(dto.getEmail())) {
@@ -27,7 +29,7 @@ public class UserService {
         User user = User.builder()
                 .name(dto.getName())
                 .email(dto.getEmail())
-                .password(dto.getPassword())
+                .password(passwordEncoder.encode(dto.getPassword()))
                 .role(dto.getRole())
                 .status(dto.getStatus())
                 .build();
@@ -58,7 +60,7 @@ public class UserService {
 
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setRole(dto.getRole());
         user.setStatus(dto.getStatus());
 
@@ -70,13 +72,10 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "User not found with id: " + id
                 ));
-        // soft delete - mark as inactive instead of removing from db
         user.setStatus(UserStatus.INACTIVE);
         return mapToResponse(userRepository.save(user));
     }
 
-    // converts User entity to UserResponseDto
-    // called every time we return user data to client
     private UserResponseDto mapToResponse(User user) {
         UserResponseDto dto = new UserResponseDto();
         dto.setId(user.getId());
@@ -86,5 +85,18 @@ public class UserService {
         dto.setStatus(user.getStatus());
         // password deliberately not mapped here
         return dto;
+    }
+
+    public void permanentDelete(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        userRepository.delete(user);
+    }
+
+    public UserResponseDto reactivateUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        user.setStatus(UserStatus.ACTIVE);
+        return mapToResponse(userRepository.save(user));
     }
 }

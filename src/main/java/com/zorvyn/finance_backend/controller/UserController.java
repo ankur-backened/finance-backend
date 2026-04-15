@@ -42,7 +42,18 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<UserResponseDto> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<UserResponseDto> deactivateUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.deleteUser(id));
+    }
+
+    @DeleteMapping("/{id}/permanent")
+    public ResponseEntity<String> permanentDeleteUser(@PathVariable Long id) {
+        userService.permanentDelete(id);
+        return ResponseEntity.ok("User permanently deleted");
+    }
+
+    @PutMapping("/{id}/reactivate")
+    public ResponseEntity<UserResponseDto> reactivateUser(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.reactivateUser(id));
     }
 }
